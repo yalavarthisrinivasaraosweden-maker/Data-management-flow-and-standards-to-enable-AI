@@ -1,0 +1,2 @@
+# Data-management-flow-and-standards-to-enable-AI
+Process monitoring is a common theme in a re of projects that GKN is involved in. Many of these projects involve experiments and data collection from experiments. The data pipeline for experimental data is not well established. In this project the student would be working on data archiving methodology that can be used in various AM related projects
