@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AM Experimental Data Management Pipeline</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            padding: 15px 30px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 1.5em;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .experiments-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .experiment-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s;
+        }
+
+        .experiment-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+
+        .experiment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+        }
+
+        .experiment-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .experiment-id {
+            font-size: 0.9em;
+            color: #999;
+            font-family: monospace;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-material {
+            background: #667eea;
+            color: white;
+        }
+
+        .badge-status {
+            background: #28a745;
+            color: white;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 1em;
+            opacity: 0.9;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 800px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1>🏭 AM Experimental Data Management Pipeline</h1>
+            <p>Efficient storage, easy access, and ML/AI-ready data management</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('dashboard')">Dashboard</button>
+            <button class="tab" onclick="switchTab('experiments')">Experiments</button>
+            <button class="tab" onclick="switchTab('add')">Add Experiment</button>
+            <button class="tab" onclick="switchTab('analytics')">Analytics</button>
+            <button class="tab" onclick="switchTab('export')">ML Export</button>
+        </div>
+
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-content active">
+            <div class="stats-grid" id="statsGrid">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading statistics...</p>
+                </div>
+            </div>
+            <div class="card">
+                <h2>Material Distribution</h2>
+                <canvas id="materialChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Experiments Tab -->
+        <div id="experiments" class="tab-content">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2>Experiments</h2>
+                    <div>
+                        <select id="materialFilter" onchange="loadExperiments()" style="padding: 10px; margin-right: 10px;">
+                            <option value="">All Materials</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="loadExperiments()">🔄 Refresh</button>
+                    </div>
+                </div>
+                <div id="experimentsContainer">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Loading experiments...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Experiment Tab -->
+        <div id="add" class="tab-content">
+            <div class="card">
+                <h2>Add New Experiment</h2>
+                <form id="experimentForm" onsubmit="saveExperiment(event)">
+                    <h3 style="margin: 20px 0 15px 0; color: #667eea;">Basic Information</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Experiment ID *</label>
+                            <input type="text" id="expId" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Experiment Name *</label>
+                            <input type="text" id="expName" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Material Type</label>
+                            <input type="text" id="materialType" placeholder="e.g., PLA, ABS, PETG">
+                        </div>
+                        <div class="form-group">
+                            <label>Material Batch</label>
+                            <input type="text" id="materialBatch">
+                        </div>
+                        <div class="form-group">
+                            <label>Build Platform</label>
+                            <input type="text" id="buildPlatform">
+                        </div>
+                        <div class="form-group">
+                            <label>Build Date</label>
+                            <input type="datetime-local" id="buildDate">
+                        </div>
+                        <div class="form-group">
+                            <label>Operator</label>
+                            <input type="text" id="operator">
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select id="status">
+                                <option value="completed">Completed</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="failed">Failed</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <h3 style="margin: 30px 0 15px 0; color: #667eea;">Process Parameters</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Layer Height (mm)</label>
+                            <input type="number" step="0.01" id="layerHeight">
+                        </div>
+                        <div class="form-group">
+                            <label>Print Speed (mm/s)</label>
+                            <input type="number" step="0.1" id="printSpeed">
+                        </div>
+                        <div class="form-group">
+                            <label>Nozzle Temperature (°C)</label>
+                            <input type="number" id="nozzleTemp">
+                        </div>
+                        <div class="form-group">
+                            <label>Bed Temperature (°C)</label>
+                            <input type="number" id="bedTemp">
+                        </div>
+                        <div class="form-group">
+                            <label>Infill Percentage</label>
+                            <input type="number" step="0.1" min="0" max="100" id="infillPct">
+                        </div>
+                        <div class="form-group">
+                            <label>Infill Pattern</label>
+                            <input type="text" id="infillPattern" placeholder="e.g., grid, honeycomb">
+                        </div>
+                        <div class="form-group">
+                            <label>Shell Count</label>
+                            <input type="number" id="shellCount">
+                        </div>
+                        <div class="form-group">
+                            <label>Support Enabled</label>
+                            <select id="supportEnabled">
+                                <option value="">N/A</option>
+                                <option value="true">Yes</option>
+                                <option value="false">No</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Print Time (hours)</label>
+                            <input type="number" step="0.1" id="printTime">
+                        </div>
+                    </div>
+
+                    <h3 style="margin: 30px 0 15px 0; color: #667eea;">Geometry Data</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Part Name</label>
+                            <input type="text" id="partName">
+                        </div>
+                        <div class="form-group">
+                            <label>Volume (mm³)</label>
+                            <input type="number" step="0.01" id="volume">
+                        </div>
+                        <div class="form-group">
+                            <label>Surface Area (mm²)</label>
+                            <input type="number" step="0.01" id="surfaceArea">
+                        </div>
+                        <div class="form-group">
+                            <label>Bounding Box X (mm)</label>
+                            <input type="number" step="0.01" id="bboxX">
+                        </div>
+                        <div class="form-group">
+                            <label>Bounding Box Y (mm)</label>
+                            <input type="number" step="0.01" id="bboxY">
+                        </div>
+                        <div class="form-group">
+                            <label>Bounding Box Z (mm)</label>
+                            <input type="number" step="0.01" id="bboxZ">
+                        </div>
+                    </div>
+
+                    <h3 style="margin: 30px 0 15px 0; color: #667eea;">Quality Metrics</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Tensile Strength (MPa)</label>
+                            <input type="number" step="0.1" id="tensileStrength">
+                        </div>
+                        <div class="form-group">
+                            <label>Surface Roughness (μm)</label>
+                            <input type="number" step="0.1" id="surfaceRoughness">
+                        </div>
+                        <div class="form-group">
+                            <label>Porosity (%)</label>
+                            <input type="number" step="0.1" id="porosity">
+                        </div>
+                        <div class="form-group">
+                            <label>Density (g/cm³)</label>
+                            <input type="number" step="0.01" id="density">
+                        </div>
+                        <div class="form-group">
+                            <label>Defect Count</label>
+                            <input type="number" id="defectCount">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <textarea id="notes" rows="4"></textarea>
+                    </div>
+
+                    <div style="margin-top: 30px; text-align: right;">
+                        <button type="button" class="btn btn-secondary" onclick="resetForm()">Reset</button>
+                        <button type="submit" class="btn btn-primary">Save Experiment</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Analytics Tab -->
+        <div id="analytics" class="tab-content">
+            <div class="card">
+                <h2>Dataset Analytics</h2>
+                <div id="analyticsContent">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Loading analytics...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Tab -->
+        <div id="export" class="tab-content">
+            <div class="card">
+                <h2>Export ML Dataset</h2>
+                <p style="margin-bottom: 20px; color: #666;">
+                    Export your experimental data in ML/AI-ready formats for training models.
+                </p>
+                <div class="form-group">
+                    <label>Material Filter (optional)</label>
+                    <select id="exportMaterialFilter">
+                        <option value="">All Materials</option>
+                    </select>
+                </div>
+                <div class="export-buttons">
+                    <button class="btn btn-primary" onclick="exportDataset('csv')">Export CSV</button>
+                    <button class="btn btn-primary" onclick="exportDataset('parquet')">Export Parquet</button>
+                    <button class="btn btn-primary" onclick="exportDataset('json')">Export JSON</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Experiment Detail Modal -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Experiment Details</h2>
+                <span class="close" onclick="closeDetailModal()">&times;</span>
+            </div>
+            <div id="detailContent"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE =
+            window.location.protocol === 'file:'
+                ? 'http://localhost:8000'
+                : window.location.origin;
+        let materialChart = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDashboard();
+            loadExperiments();
+            loadMaterials();
+        });
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+            
+            if (tabName === 'dashboard') loadDashboard();
+            if (tabName === 'analytics') loadAnalytics();
+        }
+
+        async function loadDashboard() {
+            try {
+                const response = await fetch(`${API_BASE}/api/analytics/summary`);
+                const data = await response.json();
+                
+                const statsGrid = document.getElementById('statsGrid');
+                statsGrid.innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-value">${data.total_experiments}</div>
+                        <div class="stat-label">Total Experiments</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${data.average_quality_metrics.tensile_strength_mpa ? data.average_quality_metrics.tensile_strength_mpa.toFixed(1) : 'N/A'}</div>
+                        <div class="stat-label">Avg Tensile Strength (MPa)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${data.average_quality_metrics.surface_roughness_um ? data.average_quality_metrics.surface_roughness_um.toFixed(1) : 'N/A'}</div>
+                        <div class="stat-label">Avg Surface Roughness (μm)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${Object.keys(data.material_distribution).length}</div>
+                        <div class="stat-label">Material Types</div>
+                    </div>
+                `;
+                
+                // Material distribution chart
+                const ctx = document.getElementById('materialChart').getContext('2d');
+                if (materialChart) materialChart.destroy();
+                
+                materialChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(data.material_distribution),
+                        datasets: [{
+                            label: 'Experiments',
+                            data: Object.values(data.material_distribution),
+                            backgroundColor: '#667eea'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: { beginAtZero: true }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+
+        async function loadExperiments() {
+            const container = document.getElementById('experimentsContainer');
+            const materialFilter = document.getElementById('materialFilter').value;
+            
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading experiments...</p></div>';
+            
+            try {
+                const url = materialFilter 
+                    ? `${API_BASE}/api/experiments?material_type=${encodeURIComponent(materialFilter)}`
+                    : `${API_BASE}/api/experiments`;
+                
+                const response = await fetch(url);
+                const experiments = await response.json();
+                
+                if (experiments.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; padding: 40px; color: #999;">No experiments found</p>';
+                    return;
+                }
+                
+                container.innerHTML = '<div class="experiments-grid"></div>';
+                const grid = container.querySelector('.experiments-grid');
+                
+                experiments.forEach(exp => {
+                    const card = document.createElement('div');
+                    card.className = 'experiment-card';
+                    card.onclick = () => showExperimentDetail(exp.experiment_id);
+                    card.innerHTML = `
+                        <div class="experiment-header">
+                            <div>
+                                <div class="experiment-title">${escapeHtml(exp.experiment_name)}</div>
+                                <div class="experiment-id">ID: ${escapeHtml(exp.experiment_id)}</div>
+                            </div>
+                            ${exp.material_type ? `<span class="badge badge-material">${escapeHtml(exp.material_type)}</span>` : ''}
+                        </div>
+                        ${exp.process_parameters ? `
+                            <div style="margin-top: 15px; color: #666;">
+                                <div>Nozzle Temp: ${exp.process_parameters.nozzle_temperature || 'N/A'}°C</div>
+                                <div>Print Speed: ${exp.process_parameters.print_speed || 'N/A'} mm/s</div>
+                                <div>Infill: ${exp.process_parameters.infill_percentage || 'N/A'}%</div>
+                            </div>
+                        ` : ''}
+                        ${exp.quality_metrics ? `
+                            <div style="margin-top: 15px; color: #666;">
+                                <div>Tensile Strength: ${exp.quality_metrics.tensile_strength_mpa || 'N/A'} MPa</div>
+                                <div>Surface Roughness: ${exp.quality_metrics.surface_roughness_um || 'N/A'} μm</div>
+                            </div>
+                        ` : ''}
+                    `;
+                    grid.appendChild(card);
+                });
+            } catch (error) {
+                container.innerHTML = `<p style="text-align: center; padding: 40px; color: #dc3545;">Error: ${error.message}</p>`;
+            }
+        }
+
+        async function loadMaterials() {
+            try {
+                const response = await fetch(`${API_BASE}/api/experiments`);
+                const experiments = await response.json();
+                const materials = [...new Set(experiments.map(e => e.material_type).filter(Boolean))];
+                
+                const filter = document.getElementById('materialFilter');
+                const exportFilter = document.getElementById('exportMaterialFilter');
+                
+                materials.forEach(m => {
+                    const option1 = document.createElement('option');
+                    option1.value = m;
+                    option1.textContent = m;
+                    filter.appendChild(option1);
+                    
+                    const option2 = document.createElement('option');
+                    option2.value = m;
+                    option2.textContent = m;
+                    exportFilter.appendChild(option2);
+                });
+            } catch (error) {
+                console.error('Error loading materials:', error);
+            }
+        }
+
+        async function saveExperiment(event) {
+            event.preventDefault();
+            
+            const data = {
+                experiment_id: document.getElementById('expId').value,
+                experiment_name: document.getElementById('expName').value,
+                material_type: document.getElementById('materialType').value || null,
+                material_batch: document.getElementById('materialBatch').value || null,
+                build_platform: document.getElementById('buildPlatform').value || null,
+                build_date: document.getElementById('buildDate').value ? new Date(document.getElementById('buildDate').value).toISOString() : null,
+                operator: document.getElementById('operator').value || null,
+                status: document.getElementById('status').value,
+                notes: document.getElementById('notes').value || null,
+                process_parameters: {
+                    layer_height: parseFloat(document.getElementById('layerHeight').value) || null,
+                    print_speed: parseFloat(document.getElementById('printSpeed').value) || null,
+                    nozzle_temperature: parseFloat(document.getElementById('nozzleTemp').value) || null,
+                    bed_temperature: parseFloat(document.getElementById('bedTemp').value) || null,
+                    infill_percentage: parseFloat(document.getElementById('infillPct').value) || null,
+                    infill_pattern: document.getElementById('infillPattern').value || null,
+                    shell_count: parseInt(document.getElementById('shellCount').value) || null,
+                    support_enabled: document.getElementById('supportEnabled').value === 'true' ? true : (document.getElementById('supportEnabled').value === 'false' ? false : null),
+                    print_time_hours: parseFloat(document.getElementById('printTime').value) || null
+                },
+                geometry_data: {
+                    part_name: document.getElementById('partName').value || null,
+                    volume_mm3: parseFloat(document.getElementById('volume').value) || null,
+                    surface_area_mm2: parseFloat(document.getElementById('surfaceArea').value) || null,
+                    bounding_box_x: parseFloat(document.getElementById('bboxX').value) || null,
+                    bounding_box_y: parseFloat(document.getElementById('bboxY').value) || null,
+                    bounding_box_z: parseFloat(document.getElementById('bboxZ').value) || null
+                },
+                quality_metrics: {
+                    tensile_strength_mpa: parseFloat(document.getElementById('tensileStrength').value) || null,
+                    surface_roughness_um: parseFloat(document.getElementById('surfaceRoughness').value) || null,
+                    porosity_percent: parseFloat(document.getElementById('porosity').value) || null,
+                    density_g_per_cm3: parseFloat(document.getElementById('density').value) || null,
+                    defect_count: parseInt(document.getElementById('defectCount').value) || null
+                }
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/experiments`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to save experiment');
+                }
+                
+                alert('Experiment saved successfully!');
+                resetForm();
+                loadExperiments();
+                loadMaterials();
+                loadDashboard();
+            } catch (error) {
+                alert('Error saving experiment: ' + error.message);
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('experimentForm').reset();
+        }
+
+        async function loadAnalytics() {
+            const container = document.getElementById('analyticsContent');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading analytics...</p></div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/analytics/summary`);
+                const data = await response.json();
+                
+                container.innerHTML = `
+                    <table>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Value</th>
+                        </tr>
+                        <tr>
+                            <td>Total Experiments</td>
+                            <td>${data.total_experiments}</td>
+                        </tr>
+                        <tr>
+                            <td>Material Types</td>
+                            <td>${Object.keys(data.material_distribution).length}</td>
+                        </tr>
+                        <tr>
+                            <td>Average Tensile Strength (MPa)</td>
+                            <td>${data.average_quality_metrics.tensile_strength_mpa ? data.average_quality_metrics.tensile_strength_mpa.toFixed(2) : 'N/A'}</td>
+                        </tr>
+                        <tr>
+                            <td>Average Surface Roughness (μm)</td>
+                            <td>${data.average_quality_metrics.surface_roughness_um ? data.average_quality_metrics.surface_roughness_um.toFixed(2) : 'N/A'}</td>
+                        </tr>
+                        <tr>
+                            <td>Average Porosity (%)</td>
+                            <td>${data.average_quality_metrics.porosity_percent ? data.average_quality_metrics.porosity_percent.toFixed(2) : 'N/A'}</td>
+                        </tr>
+                    </table>
+                    <h3 style="margin-top: 30px;">Material Distribution</h3>
+                    <pre style="background: #f8f9fa; padding: 20px; border-radius: 6px; overflow-x: auto;">${JSON.stringify(data.material_distribution, null, 2)}</pre>
+                `;
+            } catch (error) {
+                container.innerHTML = `<p style="color: #dc3545;">Error loading analytics: ${error.message}</p>`;
+            }
+        }
+
+        async function exportDataset(format) {
+            const materialFilter = document.getElementById('exportMaterialFilter').value;
+            const url = materialFilter
+                ? `${API_BASE}/api/export/ml-dataset?format=${format}&material_type=${encodeURIComponent(materialFilter)}`
+                : `${API_BASE}/api/export/ml-dataset?format=${format}`;
+            
+            if (format === 'json') {
+                try {
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = 'am_ml_dataset.json';
+                    link.click();
+                } catch (error) {
+                    alert('Error exporting: ' + error.message);
+                }
+            } else {
+                window.location.href = url;
+            }
+        }
+
+        async function showExperimentDetail(experimentId) {
+            try {
+                const response = await fetch(`${API_BASE}/api/experiments/${experimentId}`);
+                const exp = await response.json();
+                
+                const content = document.getElementById('detailContent');
+                content.innerHTML = `
+                    <h3>${escapeHtml(exp.experiment_name)}</h3>
+                    <p><strong>ID:</strong> ${escapeHtml(exp.experiment_id)}</p>
+                    <p><strong>Material:</strong> ${exp.material_type || 'N/A'}</p>
+                    <p><strong>Status:</strong> ${exp.status}</p>
+                    ${exp.process_parameters ? `<h4 style="margin-top: 20px;">Process Parameters</h4><pre>${JSON.stringify(exp.process_parameters, null, 2)}</pre>` : ''}
+                    ${exp.quality_metrics ? `<h4 style="margin-top: 20px;">Quality Metrics</h4><pre>${JSON.stringify(exp.quality_metrics, null, 2)}</pre>` : ''}
+                    ${exp.geometry_data ? `<h4 style="margin-top: 20px;">Geometry Data</h4><pre>${JSON.stringify(exp.geometry_data, null, 2)}</pre>` : ''}
+                `;
+                
+                document.getElementById('detailModal').style.display = 'block';
+            } catch (error) {
+                alert('Error loading experiment details: ' + error.message);
+            }
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').style.display = 'none';
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('detailModal');
+            if (event.target === modal) {
+                closeDetailModal();
+            }
+        }
+    </script>
+</body>
+</html>

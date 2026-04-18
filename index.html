@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Management System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex: 1;
+        }
+
+        .filter-group select {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 16px;
+            flex: 1;
+            max-width: 300px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideDown 0.3s;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            color: #333;
+        }
+
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .item-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s;
+        }
+
+        .item-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            border-color: #667eea;
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+        }
+
+        .item-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #333;
+            flex: 1;
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 14px;
+            border-radius: 4px;
+        }
+
+        .item-category {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #667eea;
+            color: white;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+
+        .item-description {
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .item-meta {
+            font-size: 12px;
+            color: #999;
+            border-top: 1px solid #e0e0e0;
+            padding-top: 10px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state svg {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .items-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+            
+            .filter-group {
+                flex-direction: column;
+            }
+            
+            .filter-group select {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Data Management System</h1>
+            <p>Store, access, and manage your data efficiently</p>
+        </div>
+        
+        <div class="content">
+            <div class="controls">
+                <button class="btn btn-primary" onclick="openCreateModal()">+ Add New Item</button>
+                <div class="filter-group">
+                    <select id="categoryFilter" onchange="loadItems()">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+                <button class="btn btn-secondary" onclick="loadItems()">🔄 Refresh</button>
+            </div>
+
+            <div id="itemsContainer">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading items...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create/Edit Modal -->
+    <div id="itemModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add New Item</h2>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <form id="itemForm" onsubmit="saveItem(event)">
+                <input type="hidden" id="itemId">
+                <div class="form-group">
+                    <label for="itemName">Name *</label>
+                    <input type="text" id="itemName" required>
+                </div>
+                <div class="form-group">
+                    <label for="itemDescription">Description</label>
+                    <textarea id="itemDescription"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="itemCategory">Category</label>
+                    <input type="text" id="itemCategory" placeholder="e.g., Work, Personal, Project">
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE =
+            window.location.protocol === 'file:'
+                ? 'http://localhost:8000'
+                : window.location.origin;
+
+        // Load items on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadItems();
+            loadCategories();
+        });
+
+        async function loadItems() {
+            const container = document.getElementById('itemsContainer');
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading items...</p></div>';
+
+            try {
+                const url = categoryFilter 
+                    ? `${API_BASE}/api/items?category=${encodeURIComponent(categoryFilter)}`
+                    : `${API_BASE}/api/items`;
+                
+                const response = await fetch(url);
+                const items = await response.json();
+
+                if (items.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                            </svg>
+                            <h3>No items found</h3>
+                            <p>Click "Add New Item" to get started</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = '<div class="items-grid"></div>';
+                const grid = container.querySelector('.items-grid');
+
+                items.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'item-card';
+                    card.innerHTML = `
+                        ${item.category ? `<span class="item-category">${escapeHtml(item.category)}</span>` : ''}
+                        <div class="item-header">
+                            <div class="item-title">${escapeHtml(item.name)}</div>
+                            <div class="item-actions">
+                                <button class="btn btn-primary btn-small" onclick="editItem(${item.id})">Edit</button>
+                                <button class="btn btn-danger btn-small" onclick="deleteItem(${item.id})">Delete</button>
+                            </div>
+                        </div>
+                        ${item.description ? `<div class="item-description">${escapeHtml(item.description)}</div>` : ''}
+                        <div class="item-meta">
+                            Created: ${formatDate(item.created_at)}<br>
+                            Updated: ${formatDate(item.updated_at)}
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>Error loading items</h3>
+                        <p>${error.message}</p>
+                        <button class="btn btn-primary" onclick="loadItems()" style="margin-top: 20px;">Retry</button>
+                    </div>
+                `;
+            }
+        }
+
+        async function loadCategories() {
+            try {
+                const response = await fetch(`${API_BASE}/api/categories`);
+                const data = await response.json();
+                const select = document.getElementById('categoryFilter');
+                
+                // Keep "All Categories" option
+                const allOption = select.querySelector('option[value=""]');
+                select.innerHTML = '';
+                select.appendChild(allOption);
+                
+                data.categories.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category;
+                    option.textContent = category;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading categories:', error);
+            }
+        }
+
+        function openCreateModal() {
+            document.getElementById('modalTitle').textContent = 'Add New Item';
+            document.getElementById('itemForm').reset();
+            document.getElementById('itemId').value = '';
+            document.getElementById('itemModal').style.display = 'block';
+        }
+
+        function editItem(id) {
+            fetch(`${API_BASE}/api/items/${id}`)
+                .then(response => response.json())
+                .then(item => {
+                    document.getElementById('modalTitle').textContent = 'Edit Item';
+                    document.getElementById('itemId').value = item.id;
+                    document.getElementById('itemName').value = item.name;
+                    document.getElementById('itemDescription').value = item.description || '';
+                    document.getElementById('itemCategory').value = item.category || '';
+                    document.getElementById('itemModal').style.display = 'block';
+                })
+                .catch(error => {
+                    alert('Error loading item: ' + error.message);
+                });
+        }
+
+        function closeModal() {
+            document.getElementById('itemModal').style.display = 'none';
+        }
+
+        async function saveItem(event) {
+            event.preventDefault();
+            
+            const id = document.getElementById('itemId').value;
+            const itemData = {
+                name: document.getElementById('itemName').value,
+                description: document.getElementById('itemDescription').value,
+                category: document.getElementById('itemCategory').value || null
+            };
+
+            try {
+                const url = id 
+                    ? `${API_BASE}/api/items/${id}`
+                    : `${API_BASE}/api/items`;
+                
+                const method = id ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(itemData)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to save item');
+                }
+
+                closeModal();
+                loadItems();
+                loadCategories();
+            } catch (error) {
+                alert('Error saving item: ' + error.message);
+            }
+        }
+
+        async function deleteItem(id) {
+            if (!confirm('Are you sure you want to delete this item?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/items/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to delete item');
+                }
+
+                loadItems();
+                loadCategories();
+            } catch (error) {
+                alert('Error deleting item: ' + error.message);
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString();
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('itemModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>

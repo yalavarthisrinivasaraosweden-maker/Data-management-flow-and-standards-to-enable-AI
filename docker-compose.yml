@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: am_data_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: am_data_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - am_network
+
+  # MongoDB Database (Alternative)
+  mongodb:
+    image: mongo:7.0
+    container_name: am_data_mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - am_network
+
+  # FastAPI Application (PostgreSQL version)
+  api_postgres:
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
+    container_name: am_api_postgres
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/am_data_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - am_network
+    volumes:
+      - ./am_data_storage:/app/am_data_storage
+
+  # FastAPI Application (MongoDB version)
+  api_mongodb:
+    build:
+      context: .
+      dockerfile: Dockerfile.mongodb
+    container_name: am_api_mongodb
+    ports:
+      - "8001:8000"
+    environment:
+      MONGODB_URL: mongodb://admin:admin@mongodb:27017/
+      MONGODB_DATABASE: am_data_db
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - am_network
+    volumes:
+      - ./am_data_storage:/app/am_data_storage
+
+volumes:
+  postgres_data:
+  mongodb_data:
+
+networks:
+  am_network:
+    driver: bridge

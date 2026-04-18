@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AM Pipeline — Upload Dataset</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+               background:#f5f7fa; color:#333; }
+        .header { background:linear-gradient(135deg,#667eea,#764ba2);
+                  color:white; padding:24px 32px; }
+        .header h1 { font-size:1.8em; margin-bottom:4px; }
+        .header p  { opacity:0.85; font-size:0.95em; }
+        .nav { background:white; padding:12px 32px; border-bottom:1px solid #e0e0e0;
+               display:flex; gap:20px; }
+        .nav a { text-decoration:none; color:#667eea; font-weight:500; font-size:14px; }
+        .nav a:hover { text-decoration:underline; }
+        .container { max-width:960px; margin:32px auto; padding:0 24px; }
+        .card { background:white; border-radius:10px; padding:28px;
+                box-shadow:0 2px 8px rgba(0,0,0,0.08); margin-bottom:24px; }
+        .card h2 { font-size:1.2em; margin-bottom:16px; color:#333; }
+
+        /* drop zone */
+        .dropzone { border:2px dashed #667eea; border-radius:10px;
+                    padding:48px; text-align:center; cursor:pointer;
+                    transition:all 0.2s; background:#fafbff; }
+        .dropzone.over { background:#eef0ff; border-color:#4a58d3; }
+        .dropzone svg  { width:48px; height:48px; stroke:#667eea;
+                         fill:none; margin-bottom:12px; }
+        .dropzone p    { color:#667eea; font-size:1em; margin-bottom:6px; }
+        .dropzone small{ color:#999; font-size:0.85em; }
+        #fileInput { display:none; }
+
+        /* file info bar */
+        .file-info { display:none; background:#f0f4ff; border:1px solid #c7d2fe;
+                     border-radius:8px; padding:14px 18px; margin-top:16px;
+                     display:flex; align-items:center; gap:12px; }
+        .file-info.show { display:flex; }
+        .file-icon { width:36px; height:36px; background:#667eea;
+                     border-radius:6px; display:flex; align-items:center;
+                     justify-content:center; color:white; font-size:14px;
+                     font-weight:600; flex-shrink:0; }
+        .file-details { flex:1; }
+        .file-details strong { display:block; font-size:14px; color:#333; }
+        .file-details span   { font-size:12px; color:#666; }
+        .remove-btn { background:none; border:none; color:#999;
+                      cursor:pointer; font-size:18px; padding:4px; }
+
+        /* column preview */
+        .col-preview { margin-top:16px; display:none; }
+        .col-preview.show { display:block; }
+        .col-preview h3 { font-size:14px; color:#555; margin-bottom:10px; }
+        .col-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr));
+                    gap:8px; }
+        .col-tag { background:#f1f5f9; border:1px solid #e2e8f0; border-radius:6px;
+                   padding:6px 10px; font-size:12px; color:#555; }
+        .col-tag.mapped { background:#ecfdf5; border-color:#6ee7b7; color:#065f46; }
+
+        /* upload button */
+        .btn-upload { width:100%; padding:14px; background:#667eea; color:white;
+                      border:none; border-radius:8px; font-size:16px; font-weight:500;
+                      cursor:pointer; margin-top:20px; transition:background 0.2s; }
+        .btn-upload:hover:not(:disabled) { background:#4f5dc7; }
+        .btn-upload:disabled { background:#a5b4fc; cursor:not-allowed; }
+
+        /* progress */
+        .progress-wrap { margin-top:16px; display:none; }
+        .progress-wrap.show { display:block; }
+        .progress-bar { height:8px; background:#e2e8f0; border-radius:4px; overflow:hidden; }
+        .progress-fill { height:100%; background:#667eea; border-radius:4px;
+                         transition:width 0.4s; width:0%; }
+        .progress-label { font-size:13px; color:#666; margin-top:6px; text-align:center; }
+
+        /* results */
+        .results { display:none; }
+        .results.show { display:block; }
+        .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:16px;
+                     margin-bottom:20px; }
+        .stat-box { background:#f8faff; border:1px solid #dde5ff; border-radius:8px;
+                    padding:16px; text-align:center; }
+        .stat-box .num { font-size:2em; font-weight:700; color:#667eea; }
+        .stat-box .lbl { font-size:12px; color:#666; margin-top:4px; }
+        .stat-box.success .num { color:#059669; }
+        .stat-box.warn    .num { color:#d97706; }
+        .stat-box.danger  .num { color:#dc2626; }
+
+        .error-list { background:#fff8f8; border:1px solid #fecaca;
+                      border-radius:8px; padding:16px; margin-top:16px; }
+        .error-list h4 { color:#dc2626; margin-bottom:8px; font-size:14px; }
+        .error-list pre { font-size:12px; color:#555; white-space:pre-wrap; }
+
+        .links-row { display:flex; gap:12px; flex-wrap:wrap; margin-top:16px; }
+        .link-btn { padding:10px 18px; background:#667eea; color:white;
+                    text-decoration:none; border-radius:6px; font-size:14px;
+                    font-weight:500; }
+        .link-btn.secondary { background:#6c757d; }
+        .link-btn:hover { opacity:0.9; }
+
+        /* template section */
+        .template-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr));
+                         gap:16px; }
+        .template-card { border:1px solid #e2e8f0; border-radius:8px; padding:16px;
+                         cursor:pointer; transition:all 0.2s; }
+        .template-card:hover { border-color:#667eea; background:#fafbff; }
+        .template-card h4 { font-size:14px; color:#333; margin-bottom:4px; }
+        .template-card p  { font-size:12px; color:#666; margin-bottom:10px; }
+        .template-card .dl-btn { display:inline-block; padding:6px 14px;
+                                  background:#eef0ff; color:#667eea;
+                                  border-radius:6px; font-size:12px;
+                                  font-weight:500; text-decoration:none; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>Upload Dataset</h1>
+    <p>Upload any CSV file to import experiments into the AM pipeline</p>
+</div>
+
+<div class="nav">
+    <a href="/">Dashboard</a>
+    <a href="/dashboard/advanced">Advanced UI</a>
+    <a href="/upload">Upload</a>
+    <a href="/api/v1/docs">API Docs</a>
+</div>
+
+<div class="container">
+
+    <!-- Upload card -->
+    <div class="card">
+        <h2>Upload CSV File</h2>
+
+        <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
+            <svg viewBox="0 0 24 24" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+            </svg>
+            <p>Click to browse or drag and drop your CSV file here</p>
+            <small>Supports CSV, Excel (.xlsx/.xls), TSV, JSON, and Parquet files</small>
+        </div>
+        <input type="file" id="fileInput" accept=".csv,.tsv,.txt,.xlsx,.xls,.json,.parquet" onchange="handleFileSelect(this.files[0])">
+
+        <!-- File info bar -->
+        <div class="file-info" id="fileInfo">
+            <div class="file-icon">CSV</div>
+            <div class="file-details">
+                <strong id="fileName">—</strong>
+                <span id="fileSize">—</span>
+            </div>
+            <button class="remove-btn" onclick="clearFile()">×</button>
+        </div>
+
+        <!-- Column preview -->
+        <div class="col-preview" id="colPreview">
+            <h3>Columns detected in your file</h3>
+            <div class="col-grid" id="colGrid"></div>
+        </div>
+
+        <!-- Progress bar -->
+        <div class="progress-wrap" id="progressWrap">
+            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+            <div class="progress-label" id="progressLabel">Uploading...</div>
+        </div>
+
+        <button class="btn-upload" id="uploadBtn" disabled onclick="startUpload()">
+            Upload and Import
+        </button>
+    </div>
+
+    <!-- Results card -->
+    <div class="card results" id="resultsCard">
+        <h2>Upload Results</h2>
+
+        <div class="stats-row">
+            <div class="stat-box">
+                <div class="num" id="resTotal">0</div>
+                <div class="lbl">Total rows</div>
+            </div>
+            <div class="stat-box success">
+                <div class="num" id="resCreated">0</div>
+                <div class="lbl">Created</div>
+            </div>
+            <div class="stat-box warn">
+                <div class="num" id="resSkipped">0</div>
+                <div class="lbl">Skipped (duplicate)</div>
+            </div>
+            <div class="stat-box danger">
+                <div class="num" id="resFailed">0</div>
+                <div class="lbl">Failed</div>
+            </div>
+        </div>
+
+        <div class="error-list" id="errorList" style="display:none">
+            <h4>Errors</h4>
+            <pre id="errorText"></pre>
+        </div>
+
+        <div class="links-row">
+            <a class="link-btn" href="/">View Dashboard</a>
+            <a class="link-btn" href="/dashboard/advanced">Advanced UI</a>
+            <a class="link-btn secondary"
+               href="/api/export/ml-dataset?format=csv">Export CSV</a>
+            <a class="link-btn secondary"
+               href="/api/analytics/summary" target="_blank">Analytics JSON</a>
+        </div>
+    </div>
+
+    <!-- Template download card -->
+    <div class="card">
+        <h2>Download CSV Templates</h2>
+        <p style="color:#666; font-size:14px; margin-bottom:16px;">
+            Use these templates to format your own data before uploading.
+        </p>
+        <div class="template-grid">
+            <div class="template-card">
+                <h4>Basic AM Template</h4>
+                <p>Process parameters + quality metrics. Suitable for FDM/SLS experiments.</p>
+                <a class="dl-btn" onclick="downloadTemplate('basic')">Download template</a>
+            </div>
+            <div class="template-card">
+                <h4>NIST AM Bench Format</h4>
+                <p>Matches NIST AMB2018/AMB2022 column names including orientation and benchmark ref.</p>
+                <a class="dl-btn" onclick="downloadTemplate('nist')">Download template</a>
+            </div>
+            <div class="template-card">
+                <h4>Metal LPBF Template</h4>
+                <p>For laser powder bed fusion metals — IN718, IN625, Ti6Al4V.</p>
+                <a class="dl-btn" onclick="downloadTemplate('lpbf')">Download template</a>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+const API_BASE = window.location.origin;
+let selectedFile = null;
+
+// ── column mappings for preview highlight ─────────────────────────────────
+const KNOWN_COLS = new Set([
+    "experiment_id","experiment_name","material_type","material_batch",
+    "build_platform","build_date","operator","status","notes",
+    "layer_height","print_speed","nozzle_temperature","bed_temperature",
+    "infill_percentage","infill_pattern","shell_count","support_enabled",
+    "print_time_hours","volume_mm3","surface_area_mm2","bounding_box_x",
+    "bounding_box_y","bounding_box_z","tensile_strength_mpa",
+    "yield_strength_mpa","elongation_percent","surface_roughness_um",
+    "porosity_percent","density_g_per_cm3","hardness_hb","defect_count",
+    "material","tensile","uts","roughness","porosity","density",
+    "layer_thickness","scan_speed","nozzle_temp","infill","hardness"
+]);
+
+// ── drag and drop ─────────────────────────────────────────────────────────
+const dz = document.getElementById('dropzone');
+dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+dz.addEventListener('drop', e => {
+    e.preventDefault();
+    dz.classList.remove('over');
+    const f = e.dataTransfer.files[0];
+    const allowed = ['.csv','.tsv','.txt','.xlsx','.xls','.json','.parquet'];
+const ext = f ? '.' + f.name.split('.').pop().toLowerCase() : '';
+if (f && allowed.includes(ext))
+    handleFileSelect(f);
+else
+    alert('Unsupported file type. Supported: CSV, TSV, TXT, XLSX, XLS, JSON, Parquet');
+});
+
+function handleFileSelect(file) {
+    if (!file) return;
+    selectedFile = file;
+
+    document.getElementById('fileInfo').classList.add('show');
+    document.getElementById('fileName').textContent = file.name;
+    document.getElementById('fileSize').textContent =
+        (file.size / 1024).toFixed(1) + ' KB — ' +
+        'Reading columns...';
+
+    // Read first line to get column names
+    const reader = new FileReader();
+    reader.onload = e => {
+        const firstLine = e.target.result.split('\n')[0];
+        const cols = firstLine.split(',').map(c => c.trim().replace(/"/g, ''));
+        const allLines = e.target.result.split('\n').filter(l => l.trim());
+        const rowCount = allLines.length - 1;
+
+        document.getElementById('fileSize').textContent =
+            `${(file.size/1024).toFixed(1)} KB · ${rowCount} rows · ${cols.length} columns`;
+
+        // Show column preview
+        const grid = document.getElementById('colGrid');
+        grid.innerHTML = cols.map(col => {
+            const key = col.toLowerCase().replace(/[\s\-]/g, '_');
+            const isMapped = KNOWN_COLS.has(key);
+            return `<div class="col-tag ${isMapped ? 'mapped' : ''}">${col}${isMapped ? ' ✓' : ''}</div>`;
+        }).join('');
+
+        document.getElementById('colPreview').classList.add('show');
+        document.getElementById('uploadBtn').disabled = false;
+    };
+    reader.readAsText(file.slice(0, 8192)); // read only first 8KB for preview
+}
+
+function clearFile() {
+    selectedFile = null;
+    document.getElementById('fileInput').value = '';
+    document.getElementById('fileInfo').classList.remove('show');
+    document.getElementById('colPreview').classList.remove('show');
+    document.getElementById('uploadBtn').disabled = true;
+    document.getElementById('resultsCard').classList.remove('show');
+}
+
+async function startUpload() {
+    if (!selectedFile) return;
+
+    const btn = document.getElementById('uploadBtn');
+    btn.disabled = true;
+    btn.textContent = 'Uploading...';
+
+    const progressWrap = document.getElementById('progressWrap');
+    const progressFill = document.getElementById('progressFill');
+    const progressLabel= document.getElementById('progressLabel');
+    progressWrap.classList.add('show');
+
+    // Animate progress bar while waiting for server response
+    let pct = 0;
+    const timer = setInterval(() => {
+        pct = Math.min(pct + 2, 85);
+        progressFill.style.width = pct + '%';
+        progressLabel.textContent = `Processing rows... ${pct}%`;
+    }, 120);
+
+    try {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+
+        const response = await fetch(`${API_BASE}/api/upload/csv`, {
+            method: 'POST',
+            body: formData
+        });
+
+        clearInterval(timer);
+        progressFill.style.width = '100%';
+        progressLabel.textContent = 'Complete!';
+
+        const result = await response.json();
+        showResults(result);
+
+    } catch (err) {
+        clearInterval(timer);
+        progressLabel.textContent = 'Upload failed: ' + err.message;
+        console.error(err);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Upload and Import';
+    }
+}
+
+function showResults(data) {
+    document.getElementById('resTotal').textContent   = data.total_rows;
+    document.getElementById('resCreated').textContent = data.created;
+    document.getElementById('resSkipped').textContent = data.skipped;
+    document.getElementById('resFailed').textContent  = data.failed;
+
+    if (data.errors && data.errors.length > 0) {
+        document.getElementById('errorList').style.display = 'block';
+        document.getElementById('errorText').textContent =
+            data.errors.map(e => `Row ${e.row} (${e.id}): ${e.error}`).join('\n');
+    } else {
+        document.getElementById('errorList').style.display = 'none';
+    }
+
+    document.getElementById('resultsCard').classList.add('show');
+    document.getElementById('resultsCard').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ── template downloads ────────────────────────────────────────────────────
+const TEMPLATES = {
+    basic: {
+        filename: "am_template_basic.csv",
+        headers: ["experiment_id","experiment_name","material_type","build_date",
+                  "operator","status","layer_height","print_speed",
+                  "nozzle_temperature","bed_temperature","infill_percentage",
+                  "tensile_strength_mpa","surface_roughness_um","porosity_percent",
+                  "density_g_per_cm3","notes"],
+        sample: ["EXP-001","PLA layer test","PLA","2024-03-01T10:00:00",
+                 "Lab User","completed","0.2","60","210","60","20",
+                 "45.2","8.5","2.1","1.24","Test run 1"]
+    },
+    nist: {
+        filename: "am_template_nist.csv",
+        headers: ["experiment_id","experiment_name","material_type","material_batch",
+                  "build_platform","build_date","operator","status",
+                  "process_type","build_orientation","layer_height","print_speed",
+                  "nozzle_temperature","bed_temperature","infill_percentage",
+                  "tensile_strength_mpa","yield_strength_mpa","elongation_percent",
+                  "surface_roughness_um","porosity_percent","density_g_per_cm3",
+                  "hardness_hb","nist_benchmark","notes"],
+        sample: ["NIST-AMB2018-001","PC XY 0.2mm","Polycarbonate","BATCH-PC-202401",
+                 "Stratasys F450","2024-01-15T09:00:00","NIST-Lab-A","completed",
+                 "Material Extrusion (FDM)","XY_0","0.2","50","275","110","100",
+                 "62.5","54.1","12.3","10.2","2.1","1.19","75","AMB2018-03",
+                 "NIST AM Bench polycarbonate specimen"]
+    },
+    lpbf: {
+        filename: "am_template_lpbf.csv",
+        headers: ["experiment_id","experiment_name","material_type","material_batch",
+                  "build_platform","build_date","operator","status",
+                  "build_orientation","layer_height","print_speed","bed_temperature",
+                  "tensile_strength_mpa","yield_strength_mpa","elongation_percent",
+                  "surface_roughness_um","porosity_percent","density_g_per_cm3",
+                  "hardness_hb","defect_count","notes"],
+        sample: ["LPBF-IN718-001","IN718 vertical build","IN718","BATCH-IN718-202401",
+                 "EOS M290","2024-02-10T08:00:00","NIST-Lab-B","completed",
+                 "Z_vertical","0.04","1000","150",
+                 "950","875","32","12.5","0.12","8.19","310","0",
+                 "LPBF as-built IN718 specimen"]
+    }
+};
+
+function downloadTemplate(type) {
+    const t = TEMPLATES[type];
+    const rows = [t.headers.join(','), t.sample.join(',')].join('\n');
+    const blob = new Blob([rows], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = t.filename;
+    a.click();
+}
+</script>
+</body>
+</html>

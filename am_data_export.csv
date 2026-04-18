@@ -1,0 +1,5 @@
+experiment_id,material_type,material_batch,build_date,layer_height,print_speed,nozzle_temperature,bed_temperature,infill_percentage,infill_pattern,shell_count,support_enabled,print_time_hours,volume_mm3,surface_area_mm2,complexity_score,tensile_strength_mpa,yield_strength_mpa,surface_roughness_um,porosity_percent,density_g_per_cm3,defect_count
+EXP-2024-001,PLA,BATCH-2024-01,2024-01-15 10:00:00.000000,0.2,80.0,210.0,60.0,20.0,grid,3,False,2.5,1000.0,600.0,1.0,45.2,,8.5,2.1,1.24,0
+EXP-2024-002,ABS,BATCH-2024-02,2024-01-20 14:30:00.000000,0.15,50.0,250.0,90.0,30.0,honeycomb,4,True,4.2,2500.0,1800.0,2.5,38.5,32.1,12.3,3.5,1.05,2
+EXP-2024-003,PETG,BATCH-2024-03,2024-02-01 09:00:00.000000,0.1,60.0,235.0,80.0,25.0,grid,3,False,3.8,1500.0,1200.0,1.8,52.3,,5.2,1.8,1.27,0
+EXP-CLIENT-001,PLA,BATCH-2024-01,2026-03-24 01:29:04.944716,0.2,80.0,210.0,60.0,20.0,grid,3,False,2.5,1000.0,600.0,,45.2,,8.5,2.1,1.24,0
