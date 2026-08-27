@@ -25,22 +25,39 @@ from sqlalchemy.sql import func
 from sqlalchemy.pool import QueuePool
 from sqlalchemy.exc import SQLAlchemyError
 
-# Database configuration
+# # Database configuration
+# DATABASE_URL = os.getenv(
+#     "DATABASE_URL",
+#     "postgresql://postgres:postgres@localhost:5432/am_data_db"
+# )
+
+# # Create engine with connection pooling
+# engine = create_engine(
+#     DATABASE_URL,
+#     poolclass=QueuePool,
+#     pool_size=10,
+#     max_overflow=20,
+#     pool_pre_ping=True,  # Verify connections before using
+#     pool_recycle=3600,  # Recycle connections after 1 hour
+#     echo=False  # Set to True for SQL query logging
+# )
+
+
+# Read the connection string from the environment (Render sets DATABASE_URL for you).
+# Locally, if it's not set, fall back to your local Postgres exactly as before.
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://postgres:postgres@localhost:5432/am_data_db"
+    "postgresql://postgres:postgres@localhost:5432/am_data_db",
 )
 
-# Create engine with connection pooling
-engine = create_engine(
-    DATABASE_URL,
-    poolclass=QueuePool,
-    pool_size=10,
-    max_overflow=20,
-    pool_pre_ping=True,  # Verify connections before using
-    pool_recycle=3600,  # Recycle connections after 1 hour
-    echo=False  # Set to True for SQL query logging
-)
+# Render hands out "postgres://..." but SQLAlchemy 2.x needs "postgresql://...".
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+# pool_pre_ping avoids "connection closed" errors after the free tier sleeps.
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+
+
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()

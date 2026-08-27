@@ -1,3 +1,23 @@
+# fastapi==0.104.1
+# uvicorn[standard]==0.24.0
+# python-multipart==0.0.6
+
+
+# ── Web framework & server ────────────────────────────────────────────────
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 python-multipart==0.0.6
+
+# ── Database (PostgreSQL) ─────────────────────────────────────────────────
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9        # PostgreSQL driver — required to talk to Render's DB
+
+# ── Data handling used by upload + export routes ──────────────────────────
+pandas==2.1.4
+openpyxl==3.1.2               # .xlsx / .xls reading
+pyarrow==14.0.2               # .parquet read/write
+
+# ── Common extras your extension modules may need ─────────────────────────
+# (safe to keep — remove any your project genuinely does not import)
+pydantic==2.5.2
+python-dateutil==2.8.2

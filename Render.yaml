@@ -1,0 +1,30 @@
+# render.yaml — Render Blueprint for the AM Data Pipeline
+# This one file tells Render to create BOTH a web service and a free
+# PostgreSQL database, and to wire them together automatically.
+#
+# You do NOT edit anything in here except (optionally) the names.
+# Render reads this file when you click "New +" → "Blueprint".
+
+databases:
+  - name: am-data-db                # the free PostgreSQL database
+    plan: free                      # free tier (deleted after ~30–90 days)
+    databaseName: am_data_db
+    user: am_user
+
+services:
+  - type: web                       # the always-reachable web service
+    name: am-data-pipeline          # → your URL becomes https://am-data-pipeline.onrender.com
+    runtime: python
+    plan: free                      # free tier (sleeps after 15 min idle)
+    buildCommand: "pip install -r requirements.txt"
+    # Create the tables in the fresh database, THEN start the server.
+    startCommand: "python database_migrations.py && python server.py"
+    envVars:
+      - key: DATABASE_URL           # pulled automatically from the database above
+        fromDatabase:
+          name: am-data-db
+          property: connectionString
+      - key: SKIP_DB_CREATE         # tell the migration script not to CREATE DATABASE
+        value: "1"
+      - key: PYTHON_VERSION
+        value: "3.11.9"
